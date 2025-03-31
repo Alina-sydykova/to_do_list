@@ -1,7 +1,5 @@
 import flet as ft
 from db import main_db
-from db.main_db import main_db
-
 
 def main(page: ft.Page):
     page.title = 'Todo List'
@@ -13,14 +11,14 @@ def main(page: ft.Page):
 
     def load_tasks():
         task_list.controls.clear()
-        for task_id, task_text, completed in main_db.get_tasks(filter_type):
-            task_list.controls.append(create_task_row(task_id, task_text, completed))
+        for task_id, task_text, status in main_db.get_tasks(filter_type):
+            task_list.controls.append(create_task_row(task_id, task_text, status))
         page.update()
 
-    def create_task_row(task_id, task_text, completed):
+    def create_task_row(task_id, task_text, status):
         task_field = ft.TextField(value=task_text, expand=True, dense=True, read_only=True)
         task_checkbox = ft.Checkbox(
-            value=bool(completed), 
+            value=status == 1,  
             on_change=lambda e: toggle_task(task_id, e.control.value)
         )
 
@@ -44,12 +42,13 @@ def main(page: ft.Page):
     def add_task(e):
         if task_input.value.strip():
             task_id = main_db.add_task_db(task_input.value)
-            task_list.controls.append(create_task_row(task_id, task_input.value, False))
+            task_list.controls.append(create_task_row(task_id, task_input.value, 0)) 
             task_input.value = ""
             page.update()
 
     def toggle_task(task_id, is_completed):
-        main_db.update_task_db(task_id, completed=int(is_completed))
+        status = 1 if is_completed else 0
+        main_db.update_status_db(task_id, status)
         load_tasks()
 
     def delete_task(task_id):
@@ -71,9 +70,10 @@ def main(page: ft.Page):
     filter_buttons = ft.Row([
         ft.ElevatedButton("Все", on_click=lambda e: set_filter("all")),
         ft.ElevatedButton("Выполненные", on_click=lambda e: set_filter("completed")),
-        ft.ElevatedButton("Невыполненные", on_click=lambda e: set_filter("incompleted"))
+        ft.ElevatedButton("Невыполненные", on_click=lambda e: set_filter("incompleted")),
+        ft.ElevatedButton("В работе", on_click=lambda e: set_filter("inprogress"))  # Новый фильтр
     ], alignment=ft.MainAxisAlignment.CENTER)
-    
+
     clear_button = ft.ElevatedButton("Очистить выполненные", on_click=clear_completed_tasks, icon=ft.Icons.DELETE)
     
     content = ft.Container(
@@ -91,5 +91,6 @@ def main(page: ft.Page):
     load_tasks()
 
 if __name__ == '__main__':
-    main_db.init_db()
+    main_db.init_db()  
     ft.app(target=main)
+
